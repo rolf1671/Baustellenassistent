@@ -1,4 +1,4 @@
-<!DOCTYPE.html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -198,7 +198,7 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--tex
 
 <script>
 var currentType='tagesbericht',isRecording=false,timerInterval=null,seconds=0,mediaRecorder=null,audioChunks=[],currentFormData={};
-var apiKey=localStorage.getItem('spilles_apikey')||'';
+
 var emailTages=localStorage.getItem('spilles_email_tages')||'info@spilles-dach.de';
 var emailMaterial=localStorage.getItem('spilles_email_material')||'info@spilles-dach.de';
 var senderName=localStorage.getItem('spilles_name')||'';
@@ -206,7 +206,7 @@ var senderName=localStorage.getItem('spilles_name')||'';
 window.addEventListener('DOMContentLoaded',function(){
   var now=new Date();
   document.getElementById('dateBadge').innerHTML=now.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short'})+'<br>'+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
-  if(apiKey) document.getElementById('apikeyCard').style.display='none';
+  document.getElementById('apikeyCard').style.display='none';
 });
 
 function saveApiKey(){var v=document.getElementById('apikeyInput').value.trim();if(!v.startsWith('sk-')){showToast('Ungültiger API-Key');return;}apiKey=v;localStorage.setItem('spilles_apikey',v);document.getElementById('apikeyCard').style.display='none';showToast('API-Key gespeichert');}
@@ -220,66 +220,116 @@ function toggleRecording(){if(isRecording){stopRecording();}else{startRecording(
 
 function startRecording(){
   if(!apiKey){showToast('Erst API-Key in Einstellungen hinterlegen');return;}
+  // Versuche zuerst Web Speech API (Safari iOS 14.5+)
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    startSpeechRecognition(SR);
+  } else {
+    // Fallback: MediaRecorder mit manuellem Text
+    startMediaRecorder();
+  }
+}
+
+function startSpeechRecognition(SR){
+  var recognition=new SR();
+  recognition.lang='de-DE';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  var finalText='';
+  recognition.onstart=function(){
+    isRecording=true;
+    window._recognition=recognition;
+    startTimer();
+    var btn=document.getElementById('recordBtn');
+    btn.className='record-btn recording';btn.innerHTML='&#9209;';
+    document.getElementById('recordStatus').textContent='Aufnahme läuft – Stopp drücken wenn fertig';
+    document.getElementById('transcriptCard').classList.add('show');
+  };
+  recognition.onresult=function(e){
+    var interim='';
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){finalText+=e.results[i][0].transcript+' ';}
+      else{interim+=e.results[i][0].transcript;}
+    }
+    document.getElementById('transcriptText').value=finalText+interim;
+  };
+  recognition.onerror=function(e){
+    console.warn('SpeechRecognition Fehler:',e.error);
+    // Bei Fehler auf MediaRecorder umschalten
+    isRecording=false;clearInterval(timerInterval);
+    window._recognition=null;
+    resetRecordBtn();
+    startMediaRecorder();
+  };
+  recognition.onend=function(){
+    if(isRecording){
+      // Safari beendet manchmal selbst - neu starten
+      try{recognition.start();}catch(e){
+        isRecording=false;clearInterval(timerInterval);
+        resetRecordBtn();
+        var txt=document.getElementById('transcriptText').value.trim();
+        if(txt){showToast('Aufnahme beendet');}
+      }
+    }
+  };
+  try{recognition.start();}
+  catch(e){console.error(e);startMediaRecorder();}
+}
+
+function startMediaRecorder(){
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     var mimeTypes=['audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm','audio/ogg'];
     var mimeType='';
-    for(var i=0;i<mimeTypes.length;i++){if(typeof MediaRecorder.isTypeSupported==='function'&&MediaRecorder.isTypeSupported(mimeTypes[i])){mimeType=mimeTypes[i];break;}}
-    try{mediaRecorder=mimeType?new MediaRecorder(stream,{mimeType:mimeType}):new MediaRecorder(stream);}catch(e){mediaRecorder=new MediaRecorder(stream);}
+    for(var i=0;i<mimeTypes.length;i++){
+      if(typeof MediaRecorder.isTypeSupported==='function'&&MediaRecorder.isTypeSupported(mimeTypes[i])){mimeType=mimeTypes[i];break;}
+    }
+    try{mediaRecorder=mimeType?new MediaRecorder(stream,{mimeType:mimeType}):new MediaRecorder(stream);}
+    catch(e){mediaRecorder=new MediaRecorder(stream);}
     audioChunks=[];
     mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)audioChunks.push(e.data);};
-    mediaRecorder.onstop=processRecording;
+    mediaRecorder.onstop=processMediaRecording;
     mediaRecorder.start(1000);
     isRecording=true;
     startTimer();
-    var btn=document.getElementById('recordBtn');btn.className='record-btn recording';btn.innerHTML='&#9209;';
+    var btn=document.getElementById('recordBtn');
+    btn.className='record-btn recording';btn.innerHTML='&#9209;';
     document.getElementById('recordStatus').textContent='Aufnahme läuft – Stopp drücken wenn fertig';
   }).catch(function(e){showToast('Mikrofon-Zugriff verweigert');console.error(e);});
 }
 
 function stopRecording(){
-  if(!mediaRecorder)return;
   isRecording=false;clearInterval(timerInterval);
-  mediaRecorder.stop();
-  mediaRecorder.stream.getTracks().forEach(function(t){t.stop();});
-  var btn=document.getElementById('recordBtn');btn.className='record-btn processing';btn.innerHTML='&#8987;';
-  document.getElementById('recordStatus').textContent='Aufnahme wird transkribiert …';
-  document.getElementById('progressWrap').classList.add('show');
+  // Web Speech API stoppen
+  if(window._recognition){
+    try{window._recognition.stop();}catch(e){}
+    window._recognition=null;
+    resetRecordBtn();
+    var txt=document.getElementById('transcriptText').value.trim();
+    if(txt){
+      showToast('Aufnahme beendet');
+    } else {
+      showToast('Kein Text erkannt – bitte manuell eingeben');
+    }
+    return;
+  }
+  // MediaRecorder stoppen
+  if(mediaRecorder){
+    var btn=document.getElementById('recordBtn');
+    btn.className='record-btn processing';btn.innerHTML='&#8987;';
+    document.getElementById('recordStatus').textContent='Wird verarbeitet …';
+    document.getElementById('progressWrap').classList.add('show');
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(function(t){t.stop();});
+  }
 }
 
-function processRecording(){
-  var mtype=mediaRecorder&&mediaRecorder.mimeType?mediaRecorder.mimeType:'audio/mp4';
-  var blob=new Blob(audioChunks,{type:mtype});
-  var reader=new FileReader();
-  reader.onloadend=function(){
-    var base64=reader.result.split(',')[1];
-    transcribeAudio(base64,blob.type.split(';')[0]||'audio/mp4');
-  };
-  reader.readAsDataURL(blob);
-}
-
-function transcribeAudio(base64,mediaType){
-  var baustelle=document.getElementById('baustelleInput').value.trim()||'unbekannt';
-  animateProgress(0,50,800);
-  var prompt=currentType==='tagesbericht'
-    ?'Transkribiere diese Sprachnachricht auf Deutsch. Es handelt sich um einen Baubericht eines Dachdeckers auf der Baustelle "'+baustelle+'". Gib NUR den transkribierten Text zurück, nichts anderes.'
-    :'Transkribiere diese Sprachnachricht auf Deutsch. Es handelt sich um eine Materialbestellung für die Baustelle "'+baustelle+'". Gib NUR den transkribierten Text zurück, nichts anderes.';
-
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',max_tokens:800,
-      messages:[{role:'user',content:[
-        {type:'document',source:{type:'base64',media_type:mediaType,data:base64}},
-        {type:'text',text:prompt}
-      ]}]
-    })
-  }).then(function(r){return r.json();}).then(function(data){
-    animateProgress(50,100,500);
-    if(data.error){console.warn('Audio-API Fehler:',data.error);setTimeout(function(){resetRecordBtn();showTranscript('');showToast('Bitte Text manuell eingeben');},500);return;}
-    var text=data.content[0].text.trim();
-    setTimeout(function(){resetRecordBtn();showTranscript(text);showToast('Transkription abgeschlossen');},600);
-  }).catch(function(e){console.error(e);resetRecordBtn();showTranscript('');showToast('Fehler – bitte manuell eingeben');});
+function processMediaRecording(){
+  // MediaRecorder Fallback: Text manuell eingeben da Audio-API nicht zuverlässig
+  resetRecordBtn();
+  document.getElementById('transcriptCard').classList.add('show');
+  document.getElementById('transcriptText').value='';
+  document.getElementById('transcriptText').placeholder='Bitte den Bericht hier eintippen oder diktieren …';
+  showToast('Bitte Text eingeben');
 }
 
 function showTranscript(text){document.getElementById('transcriptText').value=text;document.getElementById('transcriptCard').classList.add('show');}
