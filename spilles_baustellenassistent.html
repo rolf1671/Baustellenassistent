@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F2150">
+<title>Spilles Baustellenassistent</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0F2150;--cobalt:#1F4E79;--dark:#0a183d;--silver:#B3B5B3;--white:#fff;--accent:#4A9FD4;--success:#27ae60;--warning:#e67e22;--danger:#e74c3c;--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--muted:#6c7a8d;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
+.header{background:var(--navy);padding:14px 18px 12px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(15,33,80,.5);}
+.header-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);letter-spacing:2px;line-height:1;}
+.header-logo span{color:var(--accent);}
+.header-sub{font-size:10px;color:var(--silver);letter-spacing:1px;text-transform:uppercase;}
+.date-badge{margin-left:auto;background:rgba(255,255,255,.1);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--silver);text-align:right;line-height:1.45;}
+.main{padding:16px 14px 110px;}
+.section-label{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.apikey-card{background:linear-gradient(135deg,var(--navy),var(--cobalt));border-radius:16px;padding:18px;margin-bottom:18px;color:#fff;border:1px solid rgba(255,255,255,.1);}
+.apikey-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;margin-bottom:8px;color:var(--accent);}
+.apikey-desc{font-size:13px;opacity:.85;margin-bottom:12px;line-height:1.5;}
+.apikey-input{width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 14px;color:#fff;font-family:'Source Sans 3',sans-serif;font-size:14px;outline:none;margin-bottom:10px;}
+.apikey-input::placeholder{opacity:.4;color:#fff;}
+.apikey-input:focus{border-color:var(--accent);}
+.baustelle-input{width:100%;background:var(--card);border:2px solid transparent;border-radius:12px;padding:13px 16px;font-family:'Source Sans 3',sans-serif;font-size:16px;font-weight:600;color:var(--navy);outline:none;transition:border-color .2s;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:18px;}
+.baustelle-input:focus{border-color:var(--accent);}
+.baustelle-input::placeholder{color:#aab;font-weight:400;}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.type-card{background:var(--card);border:2px solid transparent;border-radius:14px;padding:16px 12px;cursor:pointer;transition:all .2s;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);user-select:none;}
+.type-card:active{transform:scale(.96);}
+.type-card.active{border-color:var(--navy);background:var(--navy);}
+.type-card.active .type-name{color:var(--white);}
+.type-card.active .type-desc{color:var(--silver);}
+.type-icon{font-size:28px;margin-bottom:6px;}
+.type-name{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--navy);}
+.type-desc{font-size:11px;color:var(--muted);margin-top:3px;}
+.recorder-card{background:var(--card);border-radius:16px;padding:22px 18px 18px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.record-timer{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--navy);letter-spacing:6px;margin-bottom:14px;}
+.record-btn-wrap{display:flex;justify-content:center;margin-bottom:14px;}
+.record-btn{width:84px;height:84px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 20px rgba(231,76,60,.45);-webkit-appearance:none;}
+.record-btn:active{transform:scale(.93);}
+.record-btn.recording{background:var(--navy);animation:pulse 1.5s infinite;}
+.record-btn.processing{background:var(--warning);box-shadow:0 4px 16px rgba(230,126,34,.4);}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(15,33,80,.5);}70%{box-shadow:0 0 0 18px rgba(15,33,80,0);}100%{box-shadow:0 0 0 0 rgba(15,33,80,0);}}
+.record-status{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px;min-height:18px;line-height:1.4;}
+.progress-bar-wrap{height:4px;background:#e9ecef;border-radius:4px;margin-bottom:14px;overflow:hidden;display:none;}
+.progress-bar-wrap.show{display:block;}
+.progress-bar{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .3s;}
+.hint-box{background:#eef4fa;border-left:3px solid var(--accent);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--cobalt);line-height:1.5;}
+.hint-box strong{display:block;margin-bottom:4px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--cobalt);}
+.transcript-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:none;}
+.transcript-card.show{display:block;}
+.transcript-label{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.transcript-text{font-size:14px;color:var(--text);line-height:1.6;background:#f8f9fa;border-radius:8px;padding:12px;min-height:80px;border:1.5px solid #e9ecef;outline:none;width:100%;font-family:'Source Sans 3',sans-serif;resize:vertical;}
+.transcript-text:focus{border-color:var(--accent);background:#fff;}
+.form-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:none;}
+.form-card.show{display:block;}
+.form-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.form-badge{background:var(--navy);color:var(--accent);font-size:9px;padding:2px 8px;border-radius:20px;letter-spacing:1px;font-family:'Source Sans 3',sans-serif;font-weight:700;}
+.field-group{margin-bottom:12px;}
+.field-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;display:block;}
+.field-value{width:100%;background:#f8f9fa;border:1.5px solid #e9ecef;border-radius:8px;padding:9px 12px;font-family:'Source Sans 3',sans-serif;font-size:14px;color:var(--text);outline:none;resize:none;transition:border-color .2s;line-height:1.5;}
+.field-value:focus{border-color:var(--accent);background:#fff;}
+.btn{padding:14px 10px;border:none;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;cursor:pointer;transition:all .18s;text-align:center;-webkit-appearance:none;}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--navy);color:#fff;box-shadow:0 4px 14px rgba(15,33,80,.3);}
+.btn-secondary{background:var(--card);color:var(--navy);border:2px solid var(--navy);}
+.btn-success{background:var(--success);color:#fff;box-shadow:0 4px 14px rgba(39,174,96,.35);}
+.btn-sm{padding:9px 13px;font-size:13px;border-radius:8px;}
+.btn-row{display:none;gap:10px;}
+.btn-row.show{display:flex;}
+.btn-row .btn{flex:1;}
+.inline-btns{display:flex;gap:8px;margin-top:10px;}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--dark);display:flex;padding:10px 0 20px;border-top:1px solid rgba(255,255,255,.07);z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--silver);font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;text-transform:uppercase;user-select:none;}
+.nav-item.active{color:var(--accent);}
+.nav-icon{font-size:22px;}
+.toast{position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--navy);color:#fff;padding:11px 22px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;transition:all .28s;z-index:200;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.35);pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.history-view,.settings-view{display:none;}
+.history-view.active,.settings-view.active{display:block;}
+.main-view.hidden{display:none;}
+.history-item{background:var(--card);border-radius:12px;padding:14px 15px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.05);display:flex;align-items:flex-start;gap:12px;}
+.hist-badge{background:var(--navy);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:1px;padding:4px 8px;border-radius:6px;white-space:nowrap;min-width:56px;text-align:center;line-height:1.3;flex-shrink:0;}
+.hist-info{flex:1;min-width:0;}
+.hist-bs{font-weight:700;font-size:14px;color:var(--navy);}
+.hist-preview{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hist-time{font-size:11px;color:var(--silver);margin-top:5px;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state-icon{font-size:50px;margin-bottom:12px;opacity:.35;}
+.settings-card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.settings-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--navy);margin-bottom:12px;}
+.settings-field{margin-bottom:12px;}
+.settings-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;display:block;}
+.settings-input{width:100%;background:#f8f9fa;border:1.5px solid #e9ecef;border-radius:8px;padding:10px 13px;font-family:'Source Sans 3',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+.settings-input:focus{border-color:var(--accent);background:#fff;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><div class="header-logo">SPILLES <span>DACH</span></div><div class="header-sub">Baustellenassistent v1.1</div></div>
+  <div class="date-badge" id="dateBadge"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="main main-view" id="mainView">
+  <div class="apikey-card" id="apikeyCard">
+    <div class="apikey-title">Verbindung einrichten</div>
+    <div class="apikey-desc">Anthropic API-Key einmalig eingeben. Wird lokal gespeichert und aktiviert die automatische Transkription.</div>
+    <input class="apikey-input" id="apikeyInput" type="password" placeholder="sk-ant-api03-" autocomplete="off">
+    <button class="btn btn-primary" style="width:100%;margin-top:2px" onclick="saveApiKey()">SPEICHERN</button>
+  </div>
+
+  <div class="section-label">Baustelle / Projekt</div>
+  <input class="baustelle-input" id="baustelleInput" type="text" placeholder="z. B. Kantstr. Köln">
+
+  <div class="section-label">Berichtsart</div>
+  <div class="type-grid">
+    <div class="type-card active" onclick="selectType('tagesbericht',this)">
+      <div class="type-icon">📋</div><div class="type-name">Tagesbericht</div><div class="type-desc">Leistungen · Wetter · Personal</div>
+    </div>
+    <div class="type-card" onclick="selectType('materialbestellung',this)">
+      <div class="type-icon">📦</div><div class="type-name">Materialbestellung</div><div class="type-desc">Artikel · Menge · Lieferant</div>
+    </div>
+  </div>
+
+  <div class="recorder-card">
+    <div class="record-timer" id="recordTimer">00:00</div>
+    <div class="record-btn-wrap">
+      <button class="record-btn" id="recordBtn" onclick="toggleRecording()">&#127908;</button>
+    </div>
+    <div class="record-status" id="recordStatus">Taste drücken und sprechen</div>
+    <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="hint-box" id="hintBox">
+      <strong>Tagesbericht – Sprechhilfe</strong>
+      Mitarbeiter, Wetter, Temperatur, ausgeführte Arbeiten, verbrauchtes Material, besondere Vorkommnisse, offene Punkte.
+    </div>
+  </div>
+
+  <div class="transcript-card" id="transcriptCard">
+    <div class="transcript-label">Transkription – bitte prüfen</div>
+    <textarea class="transcript-text" id="transcriptText" rows="5" placeholder="Text erscheint hier – auch manuell editierbar …"></textarea>
+    <div class="inline-btns">
+      <button class="btn btn-secondary btn-sm" onclick="clearAll()">Neu</button>
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="extractFields()">FELDER AUSFÜLLEN</button>
+    </div>
+  </div>
+
+  <div class="form-card" id="formCard">
+    <div class="form-title"><span id="formTitle">TAGESBERICHT</span><span class="form-badge">BEREIT</span></div>
+    <div id="formFields"></div>
+  </div>
+
+  <div class="btn-row" id="actionRow">
+    <button class="btn btn-secondary" onclick="clearAll()">NEU</button>
+    <button class="btn btn-success" onclick="sendForm()">SENDEN</button>
+  </div>
+</div>
+
+<div class="main history-view" id="historyView">
+  <div class="section-label">Gesendete Berichte</div>
+  <div id="historyList"></div>
+</div>
+
+<div class="main settings-view" id="settingsView">
+  <div class="section-label">Einstellungen</div>
+  <div class="settings-card">
+    <div class="settings-title">API-Verbindung</div>
+    <div class="settings-field"><label class="settings-label">Anthropic API-Key</label>
+    <input class="settings-input" id="settingsApikey" type="password" placeholder="sk-ant-api03-"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="updateApiKey()">AKTUALISIEREN</button>
+  </div>
+  <div class="settings-card">
+    <div class="settings-title">E-Mail-Empfänger</div>
+    <div class="settings-field"><label class="settings-label">Tagesbericht an</label><input class="settings-input" id="emailTages" type="email" value="info@spilles-dach.de"></div>
+    <div class="settings-field"><label class="settings-label">Materialbestellung an</label><input class="settings-input" id="emailMaterial" type="email" value="info@spilles-dach.de"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveSettings()">SPEICHERN</button>
+  </div>
+  <div class="settings-card">
+    <div class="settings-title">Mitarbeiter</div>
+    <div class="settings-field"><label class="settings-label">Dein Name</label><input class="settings-input" id="settingsName" placeholder="z. B. Jochen Schnorrenberg"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveSettings()">SPEICHERN</button>
+  </div>
+  <div class="settings-card" style="background:var(--navy)">
+    <div class="settings-title" style="color:var(--accent)">Info</div>
+    <p style="font-size:12px;color:var(--silver);line-height:1.6">v1.1 – iPhone/Safari + Android/Chrome kompatibel<br>MediaRecorder + Anthropic API<br><br>Spilles Bedachungen GmbH<br>Phönixstr. 28 · 53881 Euskirchen</p>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" id="navHome" onclick="switchView('main')"><div class="nav-icon">&#127908;</div><div>Aufnahme</div></div>
+  <div class="nav-item" id="navHistory" onclick="switchView('history')"><div class="nav-icon">&#128193;</div><div>Verlauf</div></div>
+  <div class="nav-item" id="navSettings" onclick="switchView('settings')"><div class="nav-icon">&#9881;</div><div>Einstellungen</div></div>
+</div>
+
+<script>
+var currentType='tagesbericht',isRecording=false,timerInterval=null,seconds=0,mediaRecorder=null,audioChunks=[],currentFormData={};
+var apiKey=localStorage.getItem('spilles_apikey')||'';
+var emailTages=localStorage.getItem('spilles_email_tages')||'info@spilles-dach.de';
+var emailMaterial=localStorage.getItem('spilles_email_material')||'info@spilles-dach.de';
+var senderName=localStorage.getItem('spilles_name')||'';
+
+window.addEventListener('DOMContentLoaded',function(){
+  var now=new Date();
+  document.getElementById('dateBadge').innerHTML=now.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short'})+'<br>'+now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+  if(apiKey) document.getElementById('apikeyCard').style.display='none';
+});
+
+function saveApiKey(){var v=document.getElementById('apikeyInput').value.trim();if(!v.startsWith('sk-')){showToast('Ungültiger API-Key');return;}apiKey=v;localStorage.setItem('spilles_apikey',v);document.getElementById('apikeyCard').style.display='none';showToast('API-Key gespeichert');}
+function updateApiKey(){var v=document.getElementById('settingsApikey').value.trim();if(!v.startsWith('sk-')){showToast('Ungültiger API-Key');return;}apiKey=v;localStorage.setItem('spilles_apikey',v);document.getElementById('apikeyCard').style.display='none';showToast('API-Key aktualisiert');}
+function saveSettings(){emailTages=document.getElementById('emailTages').value||'info@spilles-dach.de';emailMaterial=document.getElementById('emailMaterial').value||'info@spilles-dach.de';senderName=document.getElementById('settingsName').value||'';localStorage.setItem('spilles_email_tages',emailTages);localStorage.setItem('spilles_email_material',emailMaterial);localStorage.setItem('spilles_name',senderName);showToast('Einstellungen gespeichert');}
+
+var hintTexts={tagesbericht:'<strong>Tagesbericht - Sprechhilfe</strong>Mitarbeiter, Wetter und Temperatur, ausgeführte Arbeiten (Was, Wo, Wie viel), verbrauchtes Material, besondere Vorkommnisse, offene Punkte.',materialbestellung:'<strong>Materialbestellung - Sprechhilfe</strong>Artikel mit Menge und Einheit, gewünschten Lieferanten, Benötigungsdatum sowie Lieferadresse.'};
+function selectType(type,el){currentType=type;document.querySelectorAll('.type-card').forEach(function(c){c.classList.remove('active');});el.classList.add('active');document.getElementById('hintBox').innerHTML=hintTexts[type];document.getElementById('formTitle').textContent=type==='tagesbericht'?'TAGESBERICHT':'MATERIALBESTELLUNG';clearAll();}
+
+function toggleRecording(){if(isRecording){stopRecording();}else{startRecording();}}
+
+function startRecording(){
+  if(!apiKey){showToast('Erst API-Key in Einstellungen hinterlegen');return;}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var mimeTypes=['audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm','audio/ogg'];
+    var mimeType='';
+    for(var i=0;i<mimeTypes.length;i++){if(typeof MediaRecorder.isTypeSupported==='function'&&MediaRecorder.isTypeSupported(mimeTypes[i])){mimeType=mimeTypes[i];break;}}
+    try{mediaRecorder=mimeType?new MediaRecorder(stream,{mimeType:mimeType}):new MediaRecorder(stream);}catch(e){mediaRecorder=new MediaRecorder(stream);}
+    audioChunks=[];
+    mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=processRecording;
+    mediaRecorder.start(1000);
+    isRecording=true;
+    startTimer();
+    var btn=document.getElementById('recordBtn');btn.className='record-btn recording';btn.innerHTML='&#9209;';
+    document.getElementById('recordStatus').textContent='Aufnahme läuft – Stopp drücken wenn fertig';
+  }).catch(function(e){showToast('Mikrofon-Zugriff verweigert');console.error(e);});
+}
+
+function stopRecording(){
+  if(!mediaRecorder)return;
+  isRecording=false;clearInterval(timerInterval);
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(function(t){t.stop();});
+  var btn=document.getElementById('recordBtn');btn.className='record-btn processing';btn.innerHTML='&#8987;';
+  document.getElementById('recordStatus').textContent='Aufnahme wird transkribiert …';
+  document.getElementById('progressWrap').classList.add('show');
+}
+
+function processRecording(){
+  var mtype=mediaRecorder&&mediaRecorder.mimeType?mediaRecorder.mimeType:'audio/mp4';
+  var blob=new Blob(audioChunks,{type:mtype});
+  var reader=new FileReader();
+  reader.onloadend=function(){
+    var base64=reader.result.split(',')[1];
+    transcribeAudio(base64,blob.type.split(';')[0]||'audio/mp4');
+  };
+  reader.readAsDataURL(blob);
+}
+
+function transcribeAudio(base64,mediaType){
+  var baustelle=document.getElementById('baustelleInput').value.trim()||'unbekannt';
+  animateProgress(0,50,800);
+  var prompt=currentType==='tagesbericht'
+    ?'Transkribiere diese Sprachnachricht auf Deutsch. Es handelt sich um einen Baubericht eines Dachdeckers auf der Baustelle "'+baustelle+'". Gib NUR den transkribierten Text zurück, nichts anderes.'
+    :'Transkribiere diese Sprachnachricht auf Deutsch. Es handelt sich um eine Materialbestellung für die Baustelle "'+baustelle+'". Gib NUR den transkribierten Text zurück, nichts anderes.';
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:800,
+      messages:[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:mediaType,data:base64}},
+        {type:'text',text:prompt}
+      ]}]
+    })
+  }).then(function(r){return r.json();}).then(function(data){
+    animateProgress(50,100,500);
+    if(data.error){console.warn('Audio-API Fehler:',data.error);setTimeout(function(){resetRecordBtn();showTranscript('');showToast('Bitte Text manuell eingeben');},500);return;}
+    var text=data.content[0].text.trim();
+    setTimeout(function(){resetRecordBtn();showTranscript(text);showToast('Transkription abgeschlossen');},600);
+  }).catch(function(e){console.error(e);resetRecordBtn();showTranscript('');showToast('Fehler – bitte manuell eingeben');});
+}
+
+function showTranscript(text){document.getElementById('transcriptText').value=text;document.getElementById('transcriptCard').classList.add('show');}
+
+function extractFields(){
+  if(!apiKey){showToast('API-Key fehlt');return;}
+  var transcript=document.getElementById('transcriptText').value.trim();
+  if(!transcript){showToast('Kein Text vorhanden');return;}
+  var baustelle=document.getElementById('baustelleInput').value.trim()||'unbekannt';
+  showToast('Felder werden extrahiert …');
+  var prompts={
+    tagesbericht:'Extrahiere aus folgendem Tagesbericht-Text die Felder für Spilles Bedachungen GmbH. Antworte NUR mit gültigem JSON ohne Markdown:\n{"datum":"","baustelle":"'+baustelle+'","wetter":"","temperatur":"","mitarbeiter":"","arbeitsstunden":"","ausgefuehrte_arbeiten":"","material_verbraucht":"","besondere_vorkommnisse":"","offene_punkte":""}\nText: "'+transcript+'"',
+    materialbestellung:'Extrahiere aus folgendem Text die Felder für eine Materialbestellung bei Spilles Bedachungen GmbH. Antworte NUR mit gültigem JSON ohne Markdown:\n{"datum":"","baustelle":"'+baustelle+'","benoetigt_bis":"","lieferant":"","positionen":[{"artikel":"","menge":"","einheit":"","bemerkung":""}],"lieferadresse":"Phönixstr. 28, 53881 Euskirchen","ansprechpartner":"","sonstiges":""}\nText: "'+transcript+'"'
+  };
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompts[currentType]}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.error){showToast('API Fehler: '+data.error.message);return;}
+    var json=JSON.parse(data.content[0].text.trim().replace(/```json|```/g,'').trim());
+    currentFormData=json;renderForm(json);showToast('Felder ausgefüllt');
+  }).catch(function(e){showToast('Fehler: '+e.message);});
+}
+
+var fieldLabels={datum:'Datum',baustelle:'Baustelle',wetter:'Wetter',temperatur:'Temperatur',mitarbeiter:'Mitarbeiter',arbeitsstunden:'Arbeitsstunden',ausgefuehrte_arbeiten:'Ausgeführte Arbeiten',material_verbraucht:'Verbrauchtes Material',besondere_vorkommnisse:'Besondere Vorkommnisse',offene_punkte:'Offene Punkte',benoetigt_bis:'Benötigt bis',lieferant:'Lieferant',positionen:'Bestellpositionen',lieferadresse:'Lieferadresse',ansprechpartner:'Ansprechpartner',sonstiges:'Sonstiges'};
+var longFields=['ausgefuehrte_arbeiten','material_verbraucht','besondere_vorkommnisse','offene_punkte','sonstiges'];
+function renderForm(data){
+  var c=document.getElementById('formFields');c.innerHTML='';
+  Object.keys(data).forEach(function(key){
+    var val=data[key];
+    if(key==='positionen'&&Array.isArray(val)){
+      var g=document.createElement('div');g.className='field-group';
+      var lbl=document.createElement('label');lbl.className='field-label';lbl.textContent='Bestellpositionen';g.appendChild(lbl);
+      val.forEach(function(pos,i){var ta=document.createElement('textarea');ta.className='field-value';ta.rows=2;ta.dataset.key='pos_'+i;ta.value=[pos.menge,pos.einheit,pos.artikel,pos.bemerkung].filter(Boolean).join(' ');ta.style.marginBottom='6px';g.appendChild(ta);});
+      var addBtn=document.createElement('button');addBtn.className='btn btn-secondary btn-sm';addBtn.textContent='+ Position';
+      addBtn.onclick=function(){var ta=document.createElement('textarea');ta.className='field-value';ta.rows=2;ta.placeholder='Artikel, Menge, Einheit …';ta.style.marginBottom='6px';ta.dataset.key='pos_x'+Date.now();g.insertBefore(ta,addBtn);};
+      g.appendChild(addBtn);c.appendChild(g);
+    } else {
+      var g=document.createElement('div');g.className='field-group';
+      var lbl=document.createElement('label');lbl.className='field-label';lbl.textContent=fieldLabels[key]||key;g.appendChild(lbl);
+      if(longFields.indexOf(key)>-1){var ta=document.createElement('textarea');ta.className='field-value';ta.rows=3;ta.dataset.key=key;ta.value=val||'';g.appendChild(ta);}
+      else{var inp=document.createElement('input');inp.className='field-value';inp.type='text';inp.dataset.key=key;inp.value=(val||'').toString();g.appendChild(inp);}
+      c.appendChild(g);
+    }
+  });
+  document.getElementById('formCard').classList.add('show');
+  document.getElementById('actionRow').classList.add('show');
+  setTimeout(function(){document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'start'});},100);
+}
+
+function sendForm(){
+  var fields={};
+  document.querySelectorAll('[data-key]').forEach(function(el){fields[el.dataset.key]=el.value||'';});
+  var baustelle=fields.baustelle||document.getElementById('baustelleInput').value||'Unbekannt';
+  var now=new Date();
+  var dateStr=now.toLocaleDateString('de-DE');
+  var timeStr=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  var byLine=senderName?'\nErstellt von: '+senderName:'';
+  var subject,body,toEmail;
+  if(currentType==='tagesbericht'){
+    toEmail=emailTages;
+    subject='Tagesbericht – '+baustelle+' – '+(fields.datum||dateStr);
+    body='TAGESBERICHT\nSpilles Bedachungen GmbH\n──────────────────────────────\nBaustelle:      '+baustelle+'\nDatum:          '+(fields.datum||dateStr)+'\nWetter:         '+(fields.wetter||'–')+' | '+(fields.temperatur||'–')+'\n──────────────────────────────\nMitarbeiter:    '+(fields.mitarbeiter||'–')+'\nArbeitsstunden: '+(fields.arbeitsstunden||'–')+'\n──────────────────────────────\nAUSGEFÜHRTE ARBEITEN:\n'+(fields.ausgefuehrte_arbeiten||'–')+'\n\nVERBRAUCHTES MATERIAL:\n'+(fields.material_verbraucht||'–')+'\n\nBESONDERE VORKOMMNISSE:\n'+(fields.besondere_vorkommnisse||'keine')+'\n\nOFFENE PUNKTE:\n'+(fields.offene_punkte||'keine')+'\n──────────────────────────────\nErstellt: '+dateStr+' '+timeStr+' Uhr'+byLine+'\nSpilles Bedachungen GmbH | Phönixstr. 28 | 53881 Euskirchen\nTel: 02251/12595-0 | info@spilles-dach.de';
+  } else {
+    toEmail=emailMaterial;
+    var pos=[];document.querySelectorAll('[data-key^="pos"]').forEach(function(el){if(el.value.trim())pos.push('  · '+el.value.trim());});
+    subject='Materialbestellung – '+baustelle+' – '+(fields.datum||dateStr);
+    body='MATERIALBESTELLUNG\nSpilles Bedachungen GmbH\n──────────────────────────────\nBaustelle:       '+baustelle+'\nDatum:           '+(fields.datum||dateStr)+'\nBenötigt bis:    '+(fields.benoetigt_bis||'–')+'\nLieferant:       '+(fields.lieferant||'–')+'\n──────────────────────────────\nBESTELLPOSITIONEN:\n'+(pos.join('\n')||'–')+'\n──────────────────────────────\nLieferadresse:   '+(fields.lieferadresse||'Phönixstr. 28, 53881 Euskirchen')+'\nAnsprechpartner: '+(fields.ansprechpartner||'–')+'\nSonstiges:       '+(fields.sonstiges||'–')+'\n──────────────────────────────\nErstellt: '+dateStr+' '+timeStr+' Uhr'+byLine+'\nSpilles Bedachungen GmbH | Phönixstr. 28 | 53881 Euskirchen\nTel: 02251/12595-0 | info@spilles-dach.de';
+  }
+  var hist=JSON.parse(localStorage.getItem('spilles_history')||'[]');
+  hist.unshift({id:Date.now(),type:currentType,baustelle:baustelle,datum:fields.datum||dateStr,preview:(currentType==='tagesbericht'?(fields.ausgefuehrte_arbeiten||'').substring(0,80):(fields.lieferant||'').substring(0,80)),time:dateStr+' '+timeStr});
+  localStorage.setItem('spilles_history',JSON.stringify(hist.slice(0,50)));
+  window.location.href='mailto:'+toEmail+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  showToast('E-Mail-App wird geöffnet');
+}
+
+function startTimer(){seconds=0;clearInterval(timerInterval);timerInterval=setInterval(function(){seconds++;document.getElementById('recordTimer').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');},1000);}
+function resetRecordBtn(){var btn=document.getElementById('recordBtn');btn.className='record-btn';btn.innerHTML='&#127908;';document.getElementById('recordStatus').textContent='Taste drücken und sprechen';document.getElementById('progressWrap').classList.remove('show');document.getElementById('progressBar').style.width='0%';clearInterval(timerInterval);}
+function animateProgress(from,to,duration){var bar=document.getElementById('progressBar');var steps=20;var step=(to-from)/steps;var interval=duration/steps;var current=from;var id=setInterval(function(){current+=step;bar.style.width=Math.min(current,to)+'%';if(current>=to)clearInterval(id);},interval);}
+function clearAll(){document.getElementById('transcriptCard').classList.remove('show');document.getElementById('formCard').classList.remove('show');document.getElementById('actionRow').classList.remove('show');document.getElementById('transcriptText').value='';document.getElementById('formFields').innerHTML='';document.getElementById('recordTimer').textContent='00:00';resetRecordBtn();seconds=0;}
+function switchView(view){
+  ['main','history','settings'].forEach(function(v){var el=document.getElementById(v+'View');if(v==='main')el.classList.remove('hidden');else el.classList.remove('active');var nav=document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1));if(nav)nav.classList.remove('active');});
+  if(view==='main'){document.getElementById('mainView').classList.remove('hidden');document.getElementById('navHome').classList.add('active');}
+  else if(view==='history'){document.getElementById('mainView').classList.add('hidden');document.getElementById('historyView').classList.add('active');document.getElementById('navHistory').classList.add('active');renderHistory();}
+  else{document.getElementById('mainView').classList.add('hidden');document.getElementById('settingsView').classList.add('active');document.getElementById('navSettings').classList.add('active');document.getElementById('emailTages').value=emailTages;document.getElementById('emailMaterial').value=emailMaterial;document.getElementById('settingsName').value=senderName;}
+}
+function renderHistory(){var hist=JSON.parse(localStorage.getItem('spilles_history')||'[]');var c=document.getElementById('historyList');if(!hist.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">&#128219;</div><div>Noch keine Berichte gesendet</div></div>';return;}c.innerHTML=hist.map(function(e){return'<div class="history-item"><div class="hist-badge">'+(e.type==='tagesbericht'?'TAGES-\nBERICHT':'MATERIAL')+'</div><div class="hist-info"><div class="hist-bs">'+e.baustelle+'</div><div class="hist-preview">'+(e.preview||'–')+'</div><div class="hist-time">'+e.time+'</div></div></div>';}).join('');}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2800);}
+</script>
+</body>
+</html>
